@@ -30,3 +30,23 @@ Idiomas disponibles: español, inglés, francés, alemán, italiano, portugués,
 - Los trabajos se guardan en `trabajos/` para poder conservar el progreso si una traducción se interrumpe.
 - Para convertirlo en una app Android, el servidor debe publicarse en internet con autenticación y la app móvil debe consumir `POST /traducir`.
 - No se deben incluir claves de APIs externas dentro de una aplicación móvil.
+
+## Aplicación Android
+
+La carpeta `mobile_app/` contiene la aplicación Flutter para Google Play. Usa el mismo backend y permite elegir PDF, idioma, cancelar trabajos y abrir el resultado.
+
+Cuando Railway tenga un dominio público, genera el APK de prueba así:
+
+```powershell
+cd mobile_app
+flutter pub get
+flutter build apk --release --dart-define=API_BASE_URL=https://TU-DOMINIO.up.railway.app
+```
+
+Para Google Play se debe generar un App Bundle firmado:
+
+```powershell
+flutter build appbundle --release --dart-define=API_BASE_URL=https://TU-DOMINIO.up.railway.app
+```
+
+El archivo para Play Console quedará en `mobile_app/build/app/outputs/bundle/release/app-release.aab`.
