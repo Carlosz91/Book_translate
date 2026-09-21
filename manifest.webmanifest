@@ -1,0 +1,9 @@
+{
+  "name": "Traductor de libros PDF",
+  "short_name": "Traductor PDF",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f1eee7",
+  "theme_color": "#1f514b",
+  "description": "Traduce libros PDF conservando su diseño e imágenes."
+}

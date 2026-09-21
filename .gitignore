@@ -1,0 +1,9 @@
+*.pdf
+trabajos/
+imagenes_extraidas/
+__pycache__/
+*.pyc
+progreso_traduccion*.json
+invalid-response.json
+.env
+.vscode/

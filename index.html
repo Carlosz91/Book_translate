@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#1f514b">
+  <title>Traductor de libros PDF</title>
+  <style>
+    :root { font-family: Georgia, serif; color: #20201d; background: #f1eee7; }
+    * { box-sizing: border-box; }
+    body { min-height: 100vh; margin: 0; padding: 16px; display: grid; place-items: center; }
+    main { width: min(680px, 100%); padding: clamp(22px, 5vw, 36px); background: #fffdf8; border: 1px solid #d7d0c2; box-shadow: 0 18px 50px #3a302018; }
+    h1 { margin: 0 0 10px; font-size: clamp(2rem, 6vw, 4rem); font-weight: 400; line-height: .95; }
+    p { color: #625d55; }
+    form { display: grid; gap: 16px; margin-top: 28px; }
+    input[type=file], select { width: 100%; min-width: 0; }
+    input[type=file] { padding: 22px; border: 1px dashed #a79d8c; background: #f8f4ec; }
+    select { padding: 12px; border: 1px solid #a79d8c; background: #fffdf8; font: inherit; }
+    button { width: fit-content; padding: 12px 20px; border: 0; background: #1f514b; color: white; font: inherit; cursor: pointer; }
+    button:disabled { opacity: .5; cursor: wait; }
+    #estado { min-height: 1.5em; color: #1f514b; }
+    #descarga { display: none; width: fit-content; color: #1f514b; font-weight: 700; }
+    #cargando { display: none; align-items: center; gap: 12px; color: #625d55; min-width: 0; }
+    #texto-cargando { overflow-wrap: anywhere; }
+    #cargando.visible { display: flex; }
+    .libro { position: relative; width: 42px; height: 32px; perspective: 180px; flex: 0 0 auto; }
+    .libro::before, .libro::after { content: ''; position: absolute; top: 2px; width: 20px; height: 28px; background: #fffdf8; border: 2px solid #1f514b; }
+    .libro::before { left: 0; border-radius: 3px 0 0 3px; }
+    .libro::after { right: 0; border-radius: 0 3px 3px 0; }
+    .pagina { position: absolute; z-index: 2; top: 2px; left: 21px; width: 19px; height: 28px; background: #e8dfcf; border: 2px solid #1f514b; border-left: 0; border-radius: 0 3px 3px 0; transform-origin: left center; animation: pasar-pagina 1.8s ease-in-out infinite; }
+    #cancelar { display: none; background: transparent; color: #7b443b; border: 1px solid #b98f86; }
+    .barra { height: 4px; overflow: hidden; background: #ded8cc; }
+    .barra::after { content: ''; display: block; width: 35%; height: 100%; background: #1f514b; animation: avanzar 1.3s ease-in-out infinite; }
+    @keyframes pasar-pagina { 0%, 18% { transform: rotateY(0); } 55%, 100% { transform: rotateY(-180deg); } }
+    @keyframes avanzar { 0% { transform: translateX(-100%); } 100% { transform: translateX(300%); } }
+    @media (prefers-reduced-motion: reduce) { .pagina, .barra::after { animation: none; } }
+    @media (max-width: 520px) {
+      body { padding: 8px; place-items: start center; }
+      main { margin-top: 8px; }
+      h1 { font-size: 2.5rem; }
+      form { gap: 12px; margin-top: 22px; }
+      input[type=file] { padding: 16px 12px; }
+      button, #descarga { width: 100%; text-align: center; }
+      #cargando { align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Traducir un libro</h1>
+    <p>Sube un PDF. El resultado conservará las páginas, imágenes y distribución del original.</p>
+    <form id="formulario">
+      <input id="archivo" name="archivo" type="file" accept="application/pdf" required>
+      <label for="idioma">Idioma de destino</label>
+      <select id="idioma" name="idioma">
+        <option value="es">Español</option>
+        <option value="en">Inglés</option>
+        <option value="fr">Francés</option>
+        <option value="de">Alemán</option>
+        <option value="it">Italiano</option>
+        <option value="pt">Portugués</option>
+        <option value="ja">Japonés</option>
+        <option value="ko">Coreano</option>
+        <option value="zh-cn">Chino simplificado</option>
+      </select>
+      <button id="boton" type="submit">Traducir PDF</button>
+      <button id="cancelar" type="button">Cancelar</button>
+      <div id="cargando" aria-live="polite">
+        <span class="libro" aria-hidden="true"><span class="pagina"></span></span>
+        <span id="texto-cargando">Preparando traducción...</span>
+      </div>
+      <div class="barra" id="barra-carga" hidden></div>
+      <div id="estado" role="status"></div>
+      <a id="descarga" download>Descargar PDF traducido</a>
+    </form>
+  </main>
+  <script>
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');
+
+    const formulario = document.querySelector('#formulario');
+    const archivo = document.querySelector('#archivo');
+    const idioma = document.querySelector('#idioma');
+    const boton = document.querySelector('#boton');
+    const cancelar = document.querySelector('#cancelar');
+    const cargando = document.querySelector('#cargando');
+    const textoCargando = document.querySelector('#texto-cargando');
+    const barraCarga = document.querySelector('#barra-carga');
+    const estado = document.querySelector('#estado');
+    const enlaceDescarga = document.querySelector('#descarga');
+    let trabajoActual = null;
+
+    formulario.addEventListener('submit', async (evento) => {
+      evento.preventDefault();
+      if (!archivo.files.length) return;
+      boton.disabled = true;
+      cancelar.disabled = false;
+      cancelar.style.display = 'inline-block';
+      cargando.classList.add('visible');
+      barraCarga.hidden = false;
+      textoCargando.textContent = 'Subiendo el PDF...';
+      estado.textContent = '';
+      enlaceDescarga.style.display = 'none';
+      if (enlaceDescarga.href) URL.revokeObjectURL(enlaceDescarga.href);
+      const datos = new FormData();
+      datos.append('archivo', archivo.files[0]);
+      datos.append('idioma', idioma.value);
+
+      try {
+        const respuesta = await fetch('/traducir', { method: 'POST', body: datos });
+        if (!respuesta.ok) throw new Error((await respuesta.json()).error || 'No se pudo iniciar la traducción.');
+        const trabajo = await respuesta.json();
+        trabajoActual = trabajo;
+        textoCargando.textContent = 'Traduciendo el libro...';
+        let estadoTrabajo;
+
+        do {
+          await new Promise((resolver) => setTimeout(resolver, 1500));
+          const estadoRespuesta = await fetch(`/trabajos/${trabajo.id}`);
+          estadoTrabajo = await estadoRespuesta.json();
+          textoCargando.textContent = estadoTrabajo.estado === 'traduciendo'
+            ? 'Traduciendo. Puede tardar varios minutos...'
+            : 'Preparando traducción...';
+        } while (estadoTrabajo.estado === 'pendiente' || estadoTrabajo.estado === 'traduciendo');
+
+        if (estadoTrabajo.estado === 'cancelado') {
+          throw new Error('Traducción cancelada.');
+        }
+
+        if (estadoTrabajo.estado !== 'terminado') {
+          throw new Error(estadoTrabajo.error || 'No se pudo traducir el PDF.');
+        }
+
+        const descarga = await fetch(`/trabajos/${trabajo.id}/descarga`);
+        if (!descarga.ok) throw new Error('No se pudo descargar el PDF traducido.');
+        const blob = await descarga.blob();
+        enlaceDescarga.href = URL.createObjectURL(blob);
+        enlaceDescarga.download = `libro-traducido-${idioma.value}.pdf`;
+        enlaceDescarga.style.display = 'inline-block';
+        enlaceDescarga.click();
+        cargando.classList.remove('visible');
+        barraCarga.hidden = true;
+        estado.textContent = 'Traducción terminada. Se inició la descarga.';
+      } catch (error) {
+        cargando.classList.remove('visible');
+        barraCarga.hidden = true;
+        estado.textContent = error.message;
+      } finally {
+        boton.disabled = false;
+        cancelar.style.display = 'none';
+        trabajoActual = null;
+      }
+    });
+
+    cancelar.addEventListener('click', async () => {
+      if (!trabajoActual) return;
+      cancelar.disabled = true;
+      textoCargando.textContent = 'Cancelando...';
+      await fetch(`/trabajos/${trabajoActual.id}/cancelar`, { method: 'POST' });
+    });
+  </script>
+</body>
+</html>
