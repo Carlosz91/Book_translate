@@ -41,13 +41,13 @@ Cuando Railway tenga un dominio público, genera el APK de prueba así:
 ```powershell
 cd mobile_app
 flutter pub get
-flutter build apk --release --dart-define=API_BASE_URL=https://TU-DOMINIO.up.railway.app
+flutter build apk --release --dart-define=API_BASE_URL=https://web-production-eaa09e.up.railway.app
 ```
 
 Para Google Play se debe generar un App Bundle firmado:
 
 ```powershell
-flutter build appbundle --release --dart-define=API_BASE_URL=https://TU-DOMINIO.up.railway.app
+flutter build appbundle --release --dart-define=API_BASE_URL=https://web-production-eaa09e.up.railway.app
 ```
 
 El archivo para Play Console quedará en `mobile_app/build/app/outputs/bundle/release/app-release.aab`.

@@ -7,7 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
 
-const apiBaseUrl = String.fromEnvironment('API_BASE_URL', defaultValue: 'https://TU-APP.up.railway.app');
+const apiBaseUrl = String.fromEnvironment('API_BASE_URL', defaultValue: 'https://web-production-eaa09e.up.railway.app');
 const idiomas = <String, String>{'es': 'Español', 'en': 'Inglés', 'fr': 'Francés', 'de': 'Alemán', 'it': 'Italiano', 'pt': 'Portugués', 'ja': 'Japonés', 'ko': 'Coreano', 'zh-cn': 'Chino simplificado'};
 
 void main() => runApp(const BookTranslateApp());
