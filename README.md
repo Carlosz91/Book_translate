@@ -27,6 +27,7 @@ Idiomas disponibles: español, inglés, francés, alemán, italiano, portugués,
 ## Notas
 
 - El motor actual usa `googletrans`; puede tener límites o timeouts porque no es una API oficial.
+- Railway usa Python 3.12 mediante `runtime.txt`, porque `googletrans` todavía depende de módulos retirados en Python 3.13+.
 - Los trabajos se guardan en `trabajos/` para poder conservar el progreso si una traducción se interrumpe.
 - Para convertirlo en una app Android, el servidor debe publicarse en internet con autenticación y la app móvil debe consumir `POST /traducir`.
 - No se deben incluir claves de APIs externas dentro de una aplicación móvil.

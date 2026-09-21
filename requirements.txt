@@ -1,3 +1,8 @@
 fastapi
 uvicorn[standard]
 python-multipart
+pymupdf
+Pillow
+googletrans==4.0.0-rc.1
+reportlab
+tqdm
